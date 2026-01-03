@@ -1,0 +1,214 @@
+════════════════════════════════════════════════════════════════════════════════
+DATA THOUGHT ENGINE: 60-SECOND INTERVIEW PITCH
+v1.1.0-cross-run-reasoning
+════════════════════════════════════════════════════════════════════════════════
+
+FORMAT: Spoken pitch for elevator conversations, interviews, or brief 
+presentations. Memorizable, confident, senior-level tone.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+FULL 60-SECOND PITCH (Natural speaking pace, ~170 words):
+
+"I built a deterministic reasoning system called Data Thought Engine that 
+solves a problem I saw in analytics work: when you find an unexpected pattern 
+in your data, it's hard to explain why it happened and hard to prove your 
+explanation is reproducible.
+
+Most people use machine learning to analyze data, but that's optimized for 
+prediction on unseen data. What I built is optimized for explaining patterns 
+*in* the data you have.
+
+The system works in six layers. First, it parses your CSV and infers the 
+schema. Then it detects anomalies using statistical formulas—variance spikes, 
+monotonic breaks, distribution shifts. For each pattern, it generates two 
+competing hypotheses and tests them against a simple scoring rule. It produces 
+a complete JSON audit trail so anyone can verify the reasoning.
+
+The unique part: it's completely deterministic. Same input always produces 
+byte-identical output. No randomness anywhere. I built it with only Python 
+standard library to prove you don't need external dependencies for rigorous 
+analysis.
+
+I also added a cross-run meta-reasoning layer that compares analyses over time, 
+detecting when reasoning is stable or when conclusions shift. It's designed for 
+regulated industries where auditability matters more than accuracy."
+
+═══════════════════════════════════════════════════════════════════════════════
+
+QUICK VERSION (45 seconds, ~100 words):
+
+"I built Data Thought Engine, a deterministic reasoning system for explaining 
+patterns in tabular data. Instead of machine learning, which optimizes for 
+prediction, I optimized for reproducible explanation.
+
+It works in six layers: ingest, detect anomalies, generate competing hypotheses, 
+evaluate them, compare to prior runs, and persist a complete audit trail.
+
+The system is completely deterministic—same input produces byte-identical output. 
+Built with only Python standard library, no ML libraries. Every conclusion is 
+traceable, every hypothesis is explicit, and the JSON output is auditable.
+
+For regulated industries, this is more valuable than accuracy."
+
+═══════════════════════════════════════════════════════════════════════════════
+
+TECHNICAL VERSION (60 seconds, ~165 words):
+
+"Data Thought Engine is a six-layer deterministic pipeline for tabular analysis. 
+Layer one parses CSV and infers schema. Layer two detects three pattern types 
+using statistical formulas: variance spike via coefficient of variation, 
+monotonic break via direction reversals, distribution shift via Shannon entropy.
+
+Layer three generates two competing hypotheses per signal. Layer four scores 
+them deterministically: if score >= 1.0, supported; otherwise weak or 
+unsupported. Layer five compares reasoning signatures to prior runs to detect 
+exact matches or divergences. Layer six generates a narrative and persists JSON.
+
+The system uses immutable frozen dataclasses, content-hash IDs, and sorted 
+collections to guarantee determinism. Two runs on the same data produce 
+byte-identical JSON.
+
+v1.1 adds cross-run reasoning: signature computation identifies consistency 
+patterns across analyses. No external dependencies, Python standard library 
+only. Designed for auditability in regulated environments."
+
+═══════════════════════════════════════════════════════════════════════════════
+
+INTERVIEW VARIATION: "Why this project?"
+
+"I built Data Thought Engine to answer a specific problem: when data scientists 
+discover an unexpected pattern, we usually reach for machine learning. But ML 
+optimizes for prediction on unseen data, not explanation of the data you have.
+
+I wanted to prove you could build a rigorous, auditable analytical system that 
+explains patterns, guarantees reproducibility, and requires zero external 
+dependencies. That's Data Thought Engine.
+
+It's a six-layer pipeline: detect patterns, generate competing hypotheses, test 
+them, compare to history, and produce a complete audit trail. Completely 
+deterministic. Built with only Python standard library.
+
+The commercial angle: regulated industries—finance, healthcare, legal—care more 
+about auditability than accuracy. They need to defend every conclusion. DTE does 
+that out of the box."
+
+═══════════════════════════════════════════════════════════════════════════════
+
+STARTUP PITCH VARIATION (60 seconds):
+
+"Imagine regulators asking your company: 'Why did your model deny this loan?' 
+Your ML engineer looks at the code and can't explain it. The model was 
+stochastic, it had randomness, and re-running it gives a different answer.
+
+That's why I built Data Thought Engine. It's the opposite: completely 
+deterministic, completely auditable. You feed it a CSV, it finds patterns, 
+generates competing hypotheses, tests them, and produces a JSON trace you can 
+hand to a regulator and say: 'Here's exactly why.'
+
+Six layers: ingestion, detection, hypothesis generation, evaluation, historical 
+comparison, narrative generation. Every decision is traceable. No external 
+dependencies, Python standard library only.
+
+The market is regulated industries: fintech, insure-tech, healthcare analytics, 
+compliance. Anywhere auditability is worth more than raw accuracy. We can white-
+label this, sell per-analysis, or license the engine to enterprises."
+
+═══════════════════════════════════════════════════════════════════════════════
+
+HIRING MANAGER PITCH (30 seconds):
+
+"I built a deterministic reasoning system for pattern analysis in tabular data. 
+Six-layer architecture: detect, hypothesize, evaluate, compare, explain, audit.
+
+Key strengths: completely deterministic, zero dependencies, fully auditable, 
+zero TODOs. Shows SQL knowledge, systems design, Python excellence, and 
+production discipline.
+
+It demonstrates: architecture thinking, statistical reasoning, reproducibility 
+focus, and regulatory sensitivity. The kind of rigor you need at scale."
+
+═══════════════════════════════════════════════════════════════════════════════
+
+KEY TALKING POINTS TO WEAVE IN:
+
+1. Determinism is the unique selling point
+   "Byte-for-byte reproducibility. Same input always produces same output."
+
+2. Contrast to ML
+   "Not prediction, explanation. Not generalization, understanding."
+
+3. Regulatory angle
+   "Auditable reasoning. Every conclusion traceable. Regulators love this."
+
+4. Technical rigor
+   "Immutable dataclasses, content-hash IDs, deterministic algorithms."
+
+5. Business value
+   "For regulated industries, auditability > accuracy."
+
+6. Design discipline
+   "v1.0 frozen, v1.1 extension, zero TODOs, comprehensive types."
+
+═══════════════════════════════════════════════════════════════════════════════
+
+DELIVERY TIPS:
+
+1. Speak with confidence. You know this system deeply.
+   Practice until it's smooth, not robotic.
+
+2. Make eye contact. This is a human conversation, not a presentation.
+
+3. Lead with the problem. Most people don't know they need deterministic
+   reasoning until you explain why it matters.
+
+4. Emphasize reproducibility. It's your unique angle vs. ML.
+
+5. If they ask "Why not machine learning?", you have a prepared answer.
+   "ML is great for prediction. This is great for explanation."
+
+6. If they ask "How do you validate?", you have validation results.
+   "Two runs on the same data produced byte-identical JSON. Determinism: PASS."
+
+7. If they ask "What would you build next?", you have an answer.
+   "API wrapper, configuration management, database backend, UI dashboard,
+    hypothesis marketplace, performance optimization, compliance controls."
+
+8. If they ask "Why freeze it?", you have an answer.
+   "Demonstrates architecture discipline. Shows I understand versioning,
+    compatibility, and stability requirements for production systems."
+
+═══════════════════════════════════════════════════════════════════════════════
+
+CONVERSATION EXTENSIONS (if they want more detail):
+
+Q: "Walk me through an example."
+A: "CSV with revenue column. Average is 500, but one row is 10,000. Variance 
+spike detector computes coefficient of variation: 4.94 > threshold 4.0. Signal 
+fires. I generate two hypotheses: pricing changes or external shock. Both score 
+above 1.0, so both are supported. The output is JSON with all signals, 
+hypotheses, scores, and a narrative explaining the findings. Auditable."
+
+Q: "How do you guarantee determinism?"
+A: "Content-hash IDs so the same pattern always gets the same ID. Sorted 
+collections so iteration order is predictable. Immutable frozen dataclasses so 
+no accidental mutation. Welford's algorithm for variance so no numerical 
+instability. Zero randomness anywhere in the code."
+
+Q: "What's the business case?"
+A: "Finance needs to defend loan decisions. Healthcare needs to justify 
+treatment recommendations. Legal needs to prove compliance. All need auditability. 
+ML can't provide that. DTE does."
+
+═══════════════════════════════════════════════════════════════════════════════
+
+PRACTICE SCHEDULE:
+
+Day 1: Read full 60-second pitch 5 times slowly. Understand every word.
+Day 2: Say it aloud without reading. 3 times.
+Day 3: Record yourself. Compare to 60 seconds. Adjust pacing.
+Day 4: Deliver to mirror. Look confident. Natural pace.
+Day 5: Deliver to a friend. See if they understand. Refine.
+Interview day: Deliver with confidence. You've practiced.
+
+═══════════════════════════════════════════════════════════════════════════════

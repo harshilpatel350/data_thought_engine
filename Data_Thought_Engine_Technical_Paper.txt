@@ -1,0 +1,609 @@
+Data Thought Engine: A Deterministic Reasoning System
+for Transparent Analysis of Tabular Data
+
+TECHNICAL PAPER
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ABSTRACT
+
+This paper presents the Data Thought Engine (DTE), a deterministic, logic-based
+reasoning system designed to analyze tabular data through human-like analytical
+reasoning. Unlike conventional approaches—exploratory data analysis, machine
+learning, or statistical dashboards—DTE generates competing hypotheses to explain
+observed patterns, evaluates those hypotheses against the data, and produces
+explicit reasoning chains that can be audited and reproduced. The system
+guarantees determinism (identical input yields identical output), transparency
+(every conclusion is traceable to its assumptions), and repeatability across
+runs through a novel cross-run meta-reasoning framework. This paper describes
+the complete architecture, reasoning lifecycle, and the v1.1 extension for
+historical consistency detection.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+1. MOTIVATION
+
+1.1 The Explainability Gap
+
+Contemporary data analysis tools fall into three categories:
+
+(a) Exploratory Data Analysis (EDA) produces visualizations and descriptive
+    statistics but rarely explains what patterns mean or why they matter.
+
+(b) Machine Learning generates predictions and classifications but operates as
+    a black box; the reasoning path from input to output is opaque.
+
+(c) Dashboards display metrics and trends but offer no causal reasoning or
+    insight generation.
+
+All three lack a critical capability: transparent, auditable reasoning about
+what patterns mean and how to explain them.
+
+1.2 The Reproducibility Problem
+
+Most analytical systems are non-deterministic. Machine learning relies on random
+initialization and stochastic training. Statistical sampling introduces
+variability. Floating-point arithmetic produces platform-dependent rounding
+errors. This non-determinism makes analysis difficult to reproduce, audit, or
+defend in regulatory contexts.
+
+1.3 The Auditability Requirement
+
+In domains such as finance, healthcare, and government, decisions must be fully
+traceable. Regulators and external auditors require proof that conclusions are
+supported by evidence, assumptions are explicit, and the reasoning chain is
+defensible. No black box suffices.
+
+1.4 System Objectives
+
+DTE was designed to address these gaps:
+
+• Generate explicit competing hypotheses for observed patterns
+• Evaluate hypotheses against deterministic criteria
+• Produce complete reasoning traces that can be inspected and audited
+• Guarantee reproducibility: same input → identical output
+• Enable cross-run comparison to detect consistency or contradiction
+• Require no machine learning, statistical sampling, or non-deterministic logic
+
+═══════════════════════════════════════════════════════════════════════════════
+
+2. SYSTEM OVERVIEW
+
+2.1 Core Definition
+
+The Data Thought Engine is a pipeline that:
+
+  Input:  A CSV file with tabular data
+  Output: A narrative explanation and a JSON reasoning trace
+
+The narrative explains:
+  • What patterns were detected in the data
+  • What competing hypotheses could explain those patterns
+  • Which hypotheses are supported, weakly supported, or unsupported
+  • How the current reasoning compares to prior runs (v1.1)
+
+2.2 Key Design Principles
+
+Determinism
+  The system is designed to produce identical output for identical input, across
+  all runs and platforms. This is achieved by:
+  - Eliminating all randomness (no sampling, shuffling, or seeding)
+  - Using deterministic hashing for all IDs
+  - Implementing stable ordering for all collections
+  - Avoiding floating-point non-determinism through careful algorithm selection
+
+Transparency
+  Every conclusion is traceable to its assumptions. The system produces:
+  - A list of detected signals (anomalies or patterns)
+  - For each signal, the competing hypotheses generated
+  - For each hypothesis, the test applied and the result
+  - A summary of which hypotheses are supported or contradicted
+  - An explanation of any contradictions with prior reasoning
+
+Explainability
+  The narrative is composed algorithmically (not from templates) to explain
+  the reasoning chain in human language. The explanation includes:
+  - What was observed
+  - What hypotheses were considered
+  - Why some were supported and others rejected
+  - How this compares to prior analysis
+
+Auditability
+  All reasoning is persisted as JSON files in a `dte_runs/` directory. Each
+  file contains:
+  - The dataset analyzed
+  - The timestamp
+  - Every reasoning node (hypothesis, test, result)
+  - The narrative explanation
+  This enables historical review and comparison.
+
+2.3 What DTE Is Not
+
+DTE is not:
+  • A predictive model
+  • A machine learning system
+  • A statistical inference engine
+  • A dashboard or visualization tool
+  • A data quality checker
+  • A real-time processing system
+
+═══════════════════════════════════════════════════════════════════════════════
+
+3. ARCHITECTURE
+
+3.1 Layered Design
+
+The system is organized into six reasoning layers, plus supporting infrastructure:
+
+┌─────────────────────────────────────────────────────────────┐
+│ User Input (CLI)                                            │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────────┐
+│ INGESTION: Load and stream data from CSV                    │
+│ - Schema inference (type detection)                         │
+│ - Row generator (memory-efficient streaming)                │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────────┐
+│ OBSERVATION: Detect patterns and anomalies                  │
+│ - Variance spike detection                                  │
+│ - Monotonic break detection                                 │
+│ - Distribution shift detection                              │
+│ Returns: List of Signal objects                             │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────────┐
+│ HYPOTHESIS: Generate competing explanations                 │
+│ - For each signal, generate 2+ competing hypotheses         │
+│ - Example: variance spike → pricing OR demand shock         │
+│ - Validator removes duplicates and circular logic           │
+│ Returns: List of Hypothesis objects                         │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────────┐
+│ REASONING: Evaluate and rank hypotheses                     │
+│ - Test each hypothesis against expectations                 │
+│ - Score: supported (≥1.0), weak_support, unsupported        │
+│ - Build directed acyclic graph of conclusions               │
+│ Returns: List of Node objects (test results)                │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────────┐
+│ MEMORY: Persist results and compare with history            │
+│ - Compute reasoning signature (dataset hash, supported IDs)  │
+│ - Load prior runs from dte_runs/                            │
+│ - Detect: exact_match, dominant_changed, reinforcement, etc.│
+│ Returns: Historical comparison result                       │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────────┐
+│ EXPLANATION: Generate narrative and report findings         │
+│ - Compose human-readable explanation of reasoning chain     │
+│ - Append historical consistency assessment (v1.1)           │
+│ - Save JSON reasoning trace to dte_runs/                    │
+│ Returns: Narrative string and persisted JSON file           │
+└─────────────────────────────────────────────────────────────┘
+
+3.2 Module Organization
+
+Core Orchestration (core/)
+  - context.py: Immutable execution context passed explicitly through pipeline
+  - engine.py: Orchestrator; calls each stage in correct order
+  - lifecycle.py: Validates pipeline stage ordering
+
+Data Ingestion (ingestion/)
+  - loader.py: Validates CSV and initiates streaming
+  - schema.py: Manual type inference (no external libraries)
+  - stream.py: Row generator using stdlib csv module
+
+Pattern Detection (observation/)
+  - detectors.py: Three deterministic anomaly detectors
+  - signals.py: Signal data structure with deterministic IDs
+  - metrics.py: Manual statistical calculations (mean, variance, entropy)
+
+Hypothesis Generation (hypothesis/)
+  - generator.py: Converts signals into competing hypotheses
+  - hypothesis.py: Hypothesis data structure with deterministic IDs
+  - validator.py: Removes duplicates and circular logic
+
+Reasoning (reasoning/)
+  - node.py: Individual reasoning step (hypothesis test result)
+  - graph.py: Directed acyclic graph of reasoning nodes
+  - evaluator.py: Tests hypotheses and produces ranked results
+
+Historical Analysis (memory/)
+  - store.py: Persists reasoning to JSON files
+  - history.py: Computes signatures and compares with prior runs (v1.1)
+
+Narrative Generation (explanation/)
+  - narrative.py: Composes human-readable explanation
+  - formatter.py: CLI formatting (supplements narrative)
+
+Utilities (utils/)
+  - stats.py: Manual implementations (mean, variance, median, entropy)
+  - checks.py: Assertions and validation
+  - logger.py: Structured JSON logging
+
+═══════════════════════════════════════════════════════════════════════════════
+
+4. REASONING LIFECYCLE
+
+4.1 Step 1: Ingestion
+
+The system accepts a CSV file with headers. Using Python's stdlib csv module:
+  1. Opens file in streaming mode
+  2. Infers schema by examining first 200 rows
+  3. Detects column types: int, float, datetime, bool, str, null
+  4. Returns a row generator (lazy evaluation; full file never loaded)
+
+Example Schema Inference:
+  Input:  CSV with columns [date, region, revenue, discount, delivery_days]
+  Output: {"date": "datetime", "region": "str", "revenue": "int", ...}
+
+4.2 Step 2: Observation (Signal Detection)
+
+The system consumes up to 1000 rows and runs three deterministic detectors:
+
+Variance Spike Detection
+  For each numeric column, compute:
+    score = variance / (mean²)
+  Threshold: if score > 4, a variance spike signal is generated
+  Interpretation: Values are highly scattered relative to their average
+
+Monotonic Break Detection
+  For each numeric column, count direction changes in the sequence.
+  Example: [100, 102, 99, 98, 101] has 2 direction changes
+  Threshold: if changes ≥ 1, a monotonic break signal is generated
+  Interpretation: An upward or downward trend has reversed
+
+Distribution Shift Detection
+  For each column, compute Shannon entropy:
+    H = -Σ(p_i * log₂(p_i))
+  Threshold: if H < 0.5 (very low diversity) or H > 4 (very high), signal
+  Interpretation: The distribution is unusually uniform or chaotic
+
+Example Output:
+  [
+    Signal(kind="variance_spike", column="revenue", score=2.3),
+    Signal(kind="monotonic_break", column="delivery_days", score=1.0),
+    Signal(kind="distribution_shift", column="discount", score=1.8),
+  ]
+
+4.3 Step 3: Hypothesis Generation
+
+For each signal, the system generates competing explanations. The generator
+encodes domain rules; for example:
+
+Variance Spike → 2 Hypotheses
+  1. "Pricing or discount changes caused variance"
+     Assumptions: [discount_column_exists, discount_changes_tracked]
+     Expectations: {score: signal_score * 0.6}
+  
+  2. "External demand or supply shock caused variance"
+     Assumptions: [market_conditions_affect_outcomes]
+     Expectations: {score: signal_score * 0.7}
+
+Monotonic Break → 2 Hypotheses
+  1. "Gradual process degradation"
+     Expectations: {score: 1.5}
+  
+  2. "Sudden operational regime shift"
+     Expectations: {score: 1.6}
+
+Distribution Shift → 2 Hypotheses
+  1. "Measurement or collection method changed"
+     Expectations: {score: 0.8}
+  
+  2. "Real underlying process shifted"
+     Expectations: {score: 1.2}
+
+Each hypothesis is assigned a deterministic ID (content-hash based).
+
+Example Output:
+  [
+    Hypothesis(statement="...", assumptions=[...], expectations={score: 1.2}),
+    Hypothesis(statement="...", assumptions=[...], expectations={score: 1.4}),
+    ...
+  ]
+
+4.4 Step 4: Validation
+
+The validator removes:
+  - Exact duplicates (by ID)
+  - Circular logic (A assumes B, B assumes A)
+  - Logically inconsistent chains
+
+4.5 Step 5: Reasoning (Hypothesis Evaluation)
+
+Each hypothesis is tested against a simple rule:
+
+Test Rule:
+  if hypothesis.expectations.score ≥ 1.0:
+    result = "supported"
+  elif hypothesis.expectations.score > 0:
+    result = "weak_support"
+  else:
+    result = "unsupported"
+
+The system creates a Node for each test:
+  Node(hypothesis_id=..., test="expectation_score_test", result=..., score=...)
+
+All nodes are added to a directed acyclic graph (DAG) to ensure no circular
+reasoning.
+
+Example Output:
+  Summary: {supported: 6, weak_support: 2, unsupported: 0}
+  Nodes: [8 reasoning steps, each traceable]
+
+4.6 Step 6: Historical Comparison (v1.1)
+
+The system computes a deterministic reasoning signature:
+  - Dataset hash (SHA-256 of CSV file)
+  - Set of supported hypothesis IDs
+  - Set of rejected hypothesis IDs
+  - Dominant hypothesis (highest score)
+
+This signature is compared to all prior runs. Possible outcomes:
+  - exact_match: Identical reasoning, reproducible analysis
+  - dominant_changed: Different leading explanation (contradiction)
+  - partial_reinforcement: Overlapping support (stable, not identical)
+  - reasoning_diverged: Completely different conclusions
+  - different_dataset: CSV changed; comparison invalid
+  - no_prior_runs: First run; no comparison baseline
+
+4.7 Step 7: Explanation
+
+The system composes a narrative:
+  1. For each supported hypothesis, generate a sentence
+  2. For each weakly supported hypothesis, generate a sentence
+  3. Add a summary line (counts of support/weak/unsupported)
+  4. Append a historical consistency assessment (v1.1)
+
+Example Narrative:
+  "This finds strong support the hypothesis through expectation score test
+   (score=1.50). There is limited support the hypothesis through expectation
+   score test (score=0.80). Summary: 6 supported; 2 weak_support; 0 unsupported.
+   Historical Context: This reasoning is identical to the prior run on the same
+   dataset, indicating consistent and reproducible analysis."
+
+4.8 Step 8: Persistence
+
+Results are saved to a JSON file named `run_YYYY-MM-DDTHH-MM-SS.SSSSSS.json`:
+  {
+    "start_time": "2026-01-03T05:56:06.887230",
+    "dataset_path": "data/sample.csv",
+    "results": {
+      "summary": {supported: 6, weak_support: 2, unsupported: 0},
+      "nodes": [list of all reasoning steps]
+    },
+    "narrative": "[complete narrative string]"
+  }
+
+═══════════════════════════════════════════════════════════════════════════════
+
+5. DETERMINISM AND EXPLAINABILITY
+
+5.1 Determinism Guarantees
+
+The system guarantees: same_input + same_history → identical_output
+
+This is achieved through:
+
+1. No Randomness
+   - No random sampling, shuffling, or seeding
+   - No stochastic algorithms
+   - All IDs are deterministic content-hashes (SHA-1, SHA-256)
+
+2. Stable Ordering
+   - All collections are sorted before processing
+   - Set operations use sorted lists
+   - Iteration order is deterministic
+
+3. Immutable Data Structures
+   - All major objects are frozen dataclasses
+   - No mutation; all transformations are pure functions
+   - No global mutable state
+
+4. Explicit Context
+   - Context is passed explicitly through the pipeline
+   - No implicit dependencies on environment variables
+   - No reliance on file system state (other than input CSV)
+
+5. Numerically Stable Algorithms
+   - Variance computed using Welford's single-pass algorithm (no accumulation error)
+   - Entropy uses deterministic sorting
+   - No platform-dependent floating-point rounding
+
+Verification:
+  Running DTE twice on the same dataset produces byte-identical outputs
+  (except for millisecond-precision timestamps, which are immaterial).
+
+5.2 Explainability Architecture
+
+DTE achieves explainability through:
+
+1. Signal-to-Hypothesis Traceability
+   Each hypothesis is tagged with the signal(s) that prompted it.
+   Analysts can ask: "Why was this hypothesis generated?" and trace it back
+   to a specific observed pattern.
+
+2. Assumption Specification
+   Each hypothesis lists its assumptions explicitly:
+     "Variance spike in revenue is explained by pricing changes"
+     Assumptions: ["discount_column_exists", "discount_changes_tracked"]
+   Analysts can challenge assumptions without examining code.
+
+3. Complete Reasoning Trace
+   Every hypothesis test is recorded as a Node:
+     {hypothesis_id, test, result, score, details}
+   No test result is hidden; all are logged.
+
+4. Narrative Composition
+   The narrative is algorithmically generated (not templated) from the nodes.
+   This ensures the explanation always reflects the actual reasoning.
+
+5. JSON Audit Trail
+   Results are persisted as JSON. Auditors can inspect any run independently,
+   replay the reasoning, and verify correctness.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+6. CROSS-RUN META-REASONING (v1.1)
+
+6.1 Problem Statement
+
+A system that reasons about one dataset is useful; a system that reasons
+*about its own conclusions across time* is more powerful. v1.1 adds meta-level
+reasoning: "Is my reasoning stable? Did my conclusions contradict previous
+analysis? Have my explanations been reinforced?"
+
+6.2 Reasoning Signature
+
+For each run, the system computes a deterministic signature:
+
+  signature = {
+    dataset_hash: SHA-256[CSV_file][:16],
+    supported_ids: sorted([hypothesis IDs with result = "supported"]),
+    rejected_ids: sorted([hypothesis IDs with result = "unsupported"]),
+    weak_ids: sorted([hypothesis IDs with result = "weak_support"]),
+    dominant_hypothesis: hypothesis with highest score,
+    dominant_score: float
+  }
+
+This signature is a fingerprint of the reasoning outcome.
+
+6.3 Historical Comparison Algorithm
+
+When a run completes:
+  1. Load all prior run JSONs from dte_runs/
+  2. Reconstruct their signatures
+  3. Compare current signature to most recent prior
+  4. Report comparison status
+
+Possible Outcomes:
+
+  exact_match
+    Current signature ≡ Prior signature
+    Interpretation: Reasoning is reproducible; conclusions stable
+    Narrative: "This reasoning is identical to the prior run on the same
+               dataset, indicating consistent and reproducible analysis."
+
+  dominant_changed
+    current.dominant_hypothesis ≠ prior.dominant_hypothesis
+    Interpretation: Different leading explanation (potential contradiction)
+    Narrative: "The dominant explanation has shifted from [prior] to [current],
+               indicating a contradictory conclusion compared to prior reasoning."
+
+  partial_reinforcement
+    Some overlap in supported_ids between current and prior
+    Interpretation: Some hypotheses reinforced; analysis partially stable
+    Narrative: "[N] supported hypothesis/hypotheses overlap with prior reasoning,
+               indicating partial consistency."
+
+  reasoning_diverged
+    No overlap in supported_ids; completely different conclusions
+    Interpretation: Analysis took a different path
+    Narrative: "Reasoning has diverged significantly from prior conclusions,
+               suggesting different explanatory pathways."
+
+  different_dataset
+    current.dataset_hash ≠ prior.dataset_hash
+    Interpretation: CSV changed; comparison not meaningful
+    Narrative: "Dataset has changed since the last run; direct comparison is
+               not valid."
+
+  no_prior_runs
+    No prior runs found
+    Interpretation: First analysis of this dataset
+    Narrative: "No prior reasoning runs exist for comparison."
+
+6.4 Use Cases for Meta-Reasoning
+
+Stability Verification
+  If reasoning is identical across multiple runs, analysts are confident
+  the analysis is robust.
+
+Change Detection
+  If reasoning contradicts prior conclusions, analysts investigate:
+  "Did the data change? Did the pattern shift? Did we miss something?"
+
+Incremental Analysis
+  If each new run reinforces prior conclusions, confidence in the analysis
+  increases over time.
+
+Audit Trail
+  Regulators can inspect historical comparisons to verify analysis consistency.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+7. LIMITATIONS
+
+7.1 Scope
+
+DTE is designed for tabular data analysis, not:
+  • Time-series forecasting
+  • Entity prediction or classification
+  • Streaming or real-time data
+  • High-dimensional data (images, text, networks)
+  • Unstructured data
+
+7.2 Pattern Scope
+
+DTE detects only three classes of patterns:
+  • Variance spikes (scatter)
+  • Monotonic breaks (trend reversals)
+  • Distribution shifts (entropy extremes)
+
+More subtle patterns (correlations, seasonality, outlier clusters) are not
+detected.
+
+7.3 Hypothesis Expressiveness
+
+Hypothesis generation is rule-based and deterministic. The generator has a
+fixed set of hypothesis templates per signal type. Novel or unexpected
+explanations require extending the generator (a code change).
+
+7.4 Explanation Depth
+
+The narrative is composed from reasoning nodes but doesn't conduct deeper
+statistical analysis (confidence intervals, p-values, effect sizes). It reports
+on which hypotheses are supported, not how strongly.
+
+7.5 Scale
+
+The system samples up to 1000 rows per column. Very large datasets are
+truncated; tail behavior is not analyzed.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+8. CONCLUSION
+
+The Data Thought Engine demonstrates that deterministic, explainable reasoning
+is feasible and valuable. By combining manual statistical calculation, logical
+hypothesis evaluation, and transparent reasoning traces, DTE produces auditable,
+reproducible analytical conclusions without relying on machine learning,
+statistical inference, or non-deterministic algorithms.
+
+The v1.1 extension adds meta-level reasoning: the system now compares its own
+conclusions across time, detecting consistency and contradiction. This enables
+analysts to validate reasoning stability and auditors to track analytical
+decisions longitudinally.
+
+The frozen architecture ensures that DTE's behavior is stable, reproducible,
+and suitable for regulatory and scientific contexts where explainability and
+auditability are non-negotiable.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+REFERENCES
+
+Data Thought Engine Repository
+  Location: d:\Core Python 1\data_thought_engine
+  Version Control: Git
+  Tagged Releases: v1.0.0-deterministic, v1.1.0-cross-run-reasoning
+
+Documentation
+  Technical Architecture: README.md
+  Implementation Details: Individual module docstrings
+  Execution Examples: data/sample.csv
